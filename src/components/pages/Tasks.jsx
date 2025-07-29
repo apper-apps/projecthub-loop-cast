@@ -16,20 +16,23 @@ import Badge from "@/components/atoms/Badge";
 import TaskModal from "@/components/organisms/TaskModal";
 const Tasks = () => {
 const [searchParams] = useSearchParams();
-  const [tasks, setTasks] = useState([]);
+const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-const [showTaskModal, setShowTaskModal] = useState(false);
-const [formData, setFormData] = useState({
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     projectId: '',
     dueDate: '',
     priority: 'Medium'
   });
-const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState({});
   const [selectedProjectFilter, setSelectedProjectFilter] = useState('');
+  const [filterBy, setFilterBy] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 useEffect(() => {
     loadProjects();
     loadTasks();
@@ -142,16 +145,98 @@ const [editingTaskId, setEditingTaskId] = useState(null);
       console.error('Error updating task:', err);
     }
   };
-  const handleProjectFilterChange = (projectId) => {
+const handleProjectFilterChange = (projectId) => {
     setSelectedProjectFilter(projectId);
     loadTasks();
   };
 
-  // Filter tasks based on selected project
-  const filteredTasks = selectedProjectFilter 
-    ? tasks.filter(task => task.projectId === parseInt(selectedProjectFilter))
-    : tasks;
+  const handleFilterChange = (filter) => {
+    setFilterBy(filter);
+    if (filter === 'byProject') {
+      // Keep current project filter or show all if none selected
+    } else {
+      // Clear project filter for other filter types
+      setSelectedProjectFilter('');
+    }
+  };
 
+  const handleSortChange = (sortField, order) => {
+    setSortBy(sortField);
+    setSortOrder(order);
+  };
+
+  // Apply comprehensive filtering and sorting
+  const applyFiltersAndSort = () => {
+    let filtered = [...tasks];
+
+    // Apply project filter first if selected
+    if (selectedProjectFilter) {
+      filtered = filtered.filter(task => task.projectId === parseInt(selectedProjectFilter));
+    }
+
+    // Apply status-based filters
+    switch (filterBy) {
+      case 'active':
+        filtered = filtered.filter(task => !task.completed);
+        break;
+      case 'completed':
+        filtered = filtered.filter(task => task.completed);
+        break;
+      case 'dueToday':
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        filtered = filtered.filter(task => {
+          if (!task.dueDate) return false;
+          const dueDate = new Date(task.dueDate);
+          return dueDate >= todayStart && dueDate < todayEnd;
+        });
+        break;
+      case 'highPriority':
+        filtered = filtered.filter(task => task.priority === 'High');
+        break;
+      case 'byProject':
+        // Project filtering already applied above
+        break;
+      default:
+        // 'all' - no additional filtering
+        break;
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'dueDate':
+          const dateA = a.dueDate ? new Date(a.dueDate) : new Date(0);
+          const dateB = b.dueDate ? new Date(b.dueDate) : new Date(0);
+          comparison = dateA - dateB;
+          break;
+        case 'priority':
+          const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+          comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+          break;
+        case 'projectId':
+          const projectNameA = getProjectName(a.projectId).toLowerCase();
+          const projectNameB = getProjectName(b.projectId).toLowerCase();
+          comparison = projectNameA.localeCompare(projectNameB);
+          break;
+        case 'createdAt':
+        default:
+          const createdA = new Date(a.createdAt);
+          const createdB = new Date(b.createdAt);
+          comparison = createdA - createdB;
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  };
+
+  const filteredTasks = applyFiltersAndSort();
   const completedTasks = filteredTasks.filter(task => task.completed);
   const pendingTasks = filteredTasks.filter(task => !task.completed);
 
@@ -164,12 +249,12 @@ if (loading) return <Loading />;
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <div>
+<div>
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
           <p className="text-gray-600 mt-1">
             Manage your project tasks and to-dos
           </p>
-{filteredTasks.length > 0 && (
+          {filteredTasks.length > 0 && (
             <div className="flex gap-4 mt-3 text-sm text-gray-500">
               <span>{pendingTasks.length} pending</span>
               <span>{completedTasks.length} completed</span>
@@ -177,25 +262,100 @@ if (loading) return <Loading />;
             </div>
           )}
 
-          {/* Project Filter */}
+          {/* Filter Buttons */}
+          <div className="mt-6">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={filterBy === 'all' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('all')}
+              >
+                All Tasks
+              </Button>
+              <Button
+                variant={filterBy === 'active' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('active')}
+              >
+                Active
+              </Button>
+              <Button
+                variant={filterBy === 'completed' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('completed')}
+              >
+                Completed
+              </Button>
+              <Button
+                variant={filterBy === 'dueToday' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('dueToday')}
+              >
+                Due Today
+              </Button>
+              <Button
+                variant={filterBy === 'highPriority' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('highPriority')}
+              >
+                High Priority
+              </Button>
+              <Button
+                variant={filterBy === 'byProject' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => handleFilterChange('byProject')}
+              >
+                By Project
+              </Button>
+            </div>
+          </div>
+
+          {/* Sort Dropdown */}
           <div className="mt-4">
-            <label htmlFor="projectFilter" className="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Project
+            <label htmlFor="sortSelect" className="block text-sm font-medium text-gray-700 mb-2">
+              Sort by
             </label>
             <select
-              id="projectFilter"
-              value={selectedProjectFilter}
-              onChange={(e) => handleProjectFilterChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              id="sortSelect"
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-');
+                handleSortChange(field, order);
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
-              <option value="">All Projects</option>
-              {projects.map(project => (
-                <option key={project.Id} value={project.Id}>
-                  {project.title}
-                </option>
-              ))}
+              <option value="dueDate-asc">Due Date (Ascending)</option>
+              <option value="dueDate-desc">Due Date (Descending)</option>
+              <option value="priority-desc">Priority (High to Low)</option>
+              <option value="priority-asc">Priority (Low to High)</option>
+              <option value="projectId-asc">Project (A to Z)</option>
+              <option value="projectId-desc">Project (Z to A)</option>
+              <option value="createdAt-asc">Creation Date (Oldest First)</option>
+              <option value="createdAt-desc">Creation Date (Newest First)</option>
             </select>
           </div>
+
+          {/* Project Filter - Show only when 'By Project' filter is active */}
+          {filterBy === 'byProject' && (
+            <div className="mt-4">
+              <label htmlFor="projectFilter" className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Project
+              </label>
+              <select
+                id="projectFilter"
+                value={selectedProjectFilter}
+                onChange={(e) => handleProjectFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">All Projects</option>
+                {projects.map(project => (
+                  <option key={project.Id} value={project.Id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 <Button
           onClick={() => setShowTaskModal(true)}
