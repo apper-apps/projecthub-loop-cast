@@ -4,7 +4,7 @@ import Badge from "@/components/atoms/Badge";
 import ApperIcon from "@/components/ApperIcon";
 import { format } from "date-fns";
 
-const ProjectCard = ({ project, onEdit, onDelete }) => {
+const ProjectCard = ({ project, onEdit, onDelete, onClick }) => {
   const getStatusVariant = (status) => {
     switch (status) {
       case "active":
@@ -32,7 +32,11 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
   };
 
   return (
-    <Card hover className="p-6 space-y-4 group">
+<Card 
+      hover 
+      className="p-6 space-y-4 group cursor-pointer" 
+      onClick={() => onClick && onClick(project.Id)}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">
