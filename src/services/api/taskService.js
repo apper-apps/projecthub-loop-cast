@@ -13,13 +13,27 @@ export const taskService = {
 fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
-          { field: { Name: "Owner" } },
+          { 
+            field: { Name: "Owner" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "title" } },
           { field: { Name: "description" } },
-          { field: { Name: "projectId" } },
+          { 
+            field: { Name: "projectId" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "completed" } },
           { field: { Name: "createdAt" } },
-          { field: { Name: "dueDate" } }
+          { field: { Name: "dueDate" } },
+          {
+            field: { Name: "CreatedBy" },
+            referenceField: { field: { Name: "Name" } }
+          },
+          {
+            field: { Name: "ModifiedBy" },
+            referenceField: { field: { Name: "Name" } }
+          }
         ],
         orderBy: [
           {
@@ -74,13 +88,27 @@ fields: [
 fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
-          { field: { Name: "Owner" } },
+          { 
+            field: { Name: "Owner" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "title" } },
           { field: { Name: "description" } },
-          { field: { Name: "projectId" } },
+          { 
+            field: { Name: "projectId" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "completed" } },
           { field: { Name: "createdAt" } },
-          { field: { Name: "dueDate" } }
+          { field: { Name: "dueDate" } },
+          {
+            field: { Name: "CreatedBy" },
+            referenceField: { field: { Name: "Name" } }
+          },
+          {
+            field: { Name: "ModifiedBy" },
+            referenceField: { field: { Name: "Name" } }
+          }
         ]
       };
 

@@ -8,15 +8,26 @@ class ProjectService {
       });
 
       const params = {
-        fields: [
+fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
-          { field: { Name: "Owner" } },
+          { 
+            field: { Name: "Owner" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "title" } },
           { field: { Name: "description" } },
           { field: { Name: "status" } },
           { field: { Name: "createdAt" } },
-          { field: { Name: "updatedAt" } }
+          { field: { Name: "updatedAt" } },
+          {
+            field: { Name: "CreatedBy" },
+            referenceField: { field: { Name: "Name" } }
+          },
+          {
+            field: { Name: "ModifiedBy" },
+            referenceField: { field: { Name: "Name" } }
+          }
         ],
         orderBy: [
           {
@@ -58,14 +69,25 @@ class ProjectService {
 
       const params = {
         fields: [
-          { field: { Name: "Name" } },
+{ field: { Name: "Name" } },
           { field: { Name: "Tags" } },
-          { field: { Name: "Owner" } },
+          { 
+            field: { Name: "Owner" },
+            referenceField: { field: { Name: "Name" } }
+          },
           { field: { Name: "title" } },
           { field: { Name: "description" } },
           { field: { Name: "status" } },
           { field: { Name: "createdAt" } },
-          { field: { Name: "updatedAt" } }
+          { field: { Name: "updatedAt" } },
+          {
+            field: { Name: "CreatedBy" },
+            referenceField: { field: { Name: "Name" } }
+          },
+          {
+            field: { Name: "ModifiedBy" },
+            referenceField: { field: { Name: "Name" } }
+          }
         ]
       };
 
