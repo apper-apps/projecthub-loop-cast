@@ -34,11 +34,130 @@ const [tasks, setTasks] = useState([]);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearchChange = (e) => {
+  
+  // Bulk actions state
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [showBulkPriorityModal, setShowBulkPriorityModal] = useState(false);
+  const [showBulkProjectModal, setShowBulkProjectModal] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
-useEffect(() => {
+
+  // Bulk selection handlers
+  const handleSelectTask = (taskId) => {
+    const newSelected = new Set(selectedTasks);
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId);
+    } else {
+      newSelected.add(taskId);
+    }
+    setSelectedTasks(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks.map(task => task.Id)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTasks(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkMarkComplete = async () => {
+    setBulkActionLoading(true);
+    try {
+      const taskIds = Array.from(selectedTasks);
+      const success = await taskService.bulkUpdate(taskIds, { completed: true });
+      if (success) {
+        await loadTasks();
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error('Error in bulk mark complete:', error);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkMarkIncomplete = async () => {
+    setBulkActionLoading(true);
+    try {
+      const taskIds = Array.from(selectedTasks);
+      const success = await taskService.bulkUpdate(taskIds, { completed: false });
+      if (success) {
+        await loadTasks();
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error('Error in bulk mark incomplete:', error);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkPriorityChange = async (priority) => {
+    setBulkActionLoading(true);
+    try {
+      const taskIds = Array.from(selectedTasks);
+      const success = await taskService.bulkUpdate(taskIds, { priority });
+      if (success) {
+        await loadTasks();
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error('Error in bulk priority change:', error);
+    } finally {
+      setBulkActionLoading(false);
+      setShowBulkPriorityModal(false);
+    }
+  };
+
+  const handleBulkProjectMove = async (projectId) => {
+    setBulkActionLoading(true);
+    try {
+      const taskIds = Array.from(selectedTasks);
+      const success = await taskService.bulkUpdate(taskIds, { projectId: parseInt(projectId) });
+      if (success) {
+        await loadTasks();
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error('Error in bulk project move:', error);
+    } finally {
+      setBulkActionLoading(false);
+      setShowBulkProjectModal(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const taskCount = selectedTasks.size;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${taskCount} selected task${taskCount > 1 ? 's' : ''}? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    setBulkActionLoading(true);
+    try {
+      const taskIds = Array.from(selectedTasks);
+      const success = await taskService.bulkDelete(taskIds);
+      if (success) {
+        await loadTasks();
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadProjects();
     loadTasks();
   }, []);
@@ -262,7 +381,7 @@ const handleProjectFilterChange = (projectId) => {
 if (loading) return <Loading />;
   if (error) return <Error message={error} onRetry={loadTasks} />;
 return (
-    <div className="space-y-6">
+<div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
@@ -274,6 +393,11 @@ return (
               <span>{pendingTasks.length} pending</span>
               <span>{completedTasks.length} completed</span>
               <span>{filteredTasks.length} total</span>
+              {selectedTasks.size > 0 && (
+                <span className="text-primary-600 font-medium">
+                  {selectedTasks.size} selected
+                </span>
+              )}
             </div>
           )}
 
@@ -383,7 +507,7 @@ return (
             </div>
           )}
         </div>
-<Button
+        <Button
           onClick={() => setShowTaskModal(true)}
           variant="primary"
           className="flex items-center gap-2"
@@ -393,7 +517,146 @@ return (
         </Button>
       </div>
 
-<TaskModal
+      {/* Bulk Actions Toolbar */}
+      {selectedTasks.size > 0 && (
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-primary-900">
+                {selectedTasks.size} task{selectedTasks.size > 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="text-primary-600 hover:text-primary-800"
+              >
+                Clear selection
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBulkMarkComplete}
+                disabled={bulkActionLoading}
+                className="flex items-center gap-1"
+              >
+                <ApperIcon name="Check" size={14} />
+                Mark Complete
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBulkMarkIncomplete}
+                disabled={bulkActionLoading}
+                className="flex items-center gap-1"
+              >
+                <ApperIcon name="X" size={14} />
+                Mark Incomplete
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowBulkPriorityModal(true)}
+                disabled={bulkActionLoading}
+                className="flex items-center gap-1"
+              >
+                <ApperIcon name="AlertCircle" size={14} />
+                Change Priority
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowBulkProjectModal(true)}
+                disabled={bulkActionLoading}
+                className="flex items-center gap-1"
+              >
+                <ApperIcon name="Folder" size={14} />
+                Move to Project
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={bulkActionLoading}
+                className="flex items-center gap-1"
+              >
+                <ApperIcon name="Trash2" size={14} />
+                Delete Selected
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Priority Modal */}
+      {showBulkPriorityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Change Priority</h3>
+            <p className="text-gray-600 mb-4">
+              Set priority for {selectedTasks.size} selected task{selectedTasks.size > 1 ? 's' : ''}
+            </p>
+            <div className="space-y-2 mb-6">
+              {['High', 'Medium', 'Low'].map(priority => (
+                <button
+                  key={priority}
+                  onClick={() => handleBulkPriorityChange(priority)}
+                  disabled={bulkActionLoading}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                >
+                  {priority}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowBulkPriorityModal(false)}
+                disabled={bulkActionLoading}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Project Modal */}
+      {showBulkProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Move to Project</h3>
+            <p className="text-gray-600 mb-4">
+              Move {selectedTasks.size} selected task{selectedTasks.size > 1 ? 's' : ''} to project
+            </p>
+            <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
+              {projects.map(project => (
+                <button
+                  key={project.Id}
+                  onClick={() => handleBulkProjectMove(project.Id)}
+                  disabled={bulkActionLoading}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                >
+                  {project.title}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowBulkProjectModal(false)}
+                disabled={bulkActionLoading}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TaskModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
         onSave={handleFormSubmit}
@@ -401,7 +664,7 @@ return (
         title="Create New Task"
       />
 
-{tasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <Empty
           title="No tasks yet"
           message="Create your first task to get started with managing your to-dos."
@@ -420,6 +683,34 @@ return (
         />
       ) : (
         <div className="space-y-4">
+          {/* Select All Checkbox */}
+          {filteredTasks.length > 0 && (
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <button
+                onClick={handleSelectAll}
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                  selectedTasks.size === filteredTasks.length
+                    ? 'bg-primary-500 border-primary-500 text-white'
+                    : selectedTasks.size > 0
+                    ? 'bg-primary-100 border-primary-500 text-primary-600'
+                    : 'border-gray-300 hover:border-primary-500'
+                }`}
+              >
+                {selectedTasks.size === filteredTasks.length ? (
+                  <ApperIcon name="Check" size={12} />
+                ) : selectedTasks.size > 0 ? (
+                  <ApperIcon name="Minus" size={12} />
+                ) : null}
+              </button>
+              <span className="text-sm text-gray-600">
+                {selectedTasks.size === filteredTasks.length 
+                  ? 'Deselect all' 
+                  : selectedTasks.size > 0 
+                  ? `Select all (${filteredTasks.length - selectedTasks.size} more)`
+                  : 'Select all'}
+              </span>
+            </div>
+          )}
           {pendingTasks.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-3">
@@ -433,6 +724,8 @@ return (
                     projectName={getProjectName(task.projectId)}
                     projects={projects}
                     isEditing={editingTaskId === task.Id}
+                    isSelected={selectedTasks.has(task.Id)}
+                    onSelect={handleSelectTask}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
                     onEdit={handleEditTask}
@@ -450,13 +743,15 @@ return (
                 Completed Tasks ({completedTasks.length})
               </h2>
               <div className="space-y-3">
-                {completedTasks.map(task => (
+{completedTasks.map(task => (
                   <TaskCard
                     key={task.Id}
                     task={task}
                     projectName={getProjectName(task.projectId)}
                     projects={projects}
                     isEditing={editingTaskId === task.Id}
+                    isSelected={selectedTasks.has(task.Id)}
+                    onSelect={handleSelectTask}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
                     onEdit={handleEditTask}
@@ -473,7 +768,7 @@ return (
   );
 };
 
-const TaskCard = ({ task, projectName, projects, isEditing, onToggleComplete, onDelete, onEdit, onUpdate, onCancelEdit }) => {
+const TaskCard = ({ task, projectName, projects, isEditing, isSelected, onSelect, onToggleComplete, onDelete, onEdit, onUpdate, onCancelEdit }) => {
   // Determine due date status
   const getDueDateStatus = (dueDate) => {
     if (!dueDate) return null;
@@ -508,15 +803,17 @@ const TaskCard = ({ task, projectName, projects, isEditing, onToggleComplete, on
   
   // Determine card border color based on due date status
   const getBorderClass = () => {
-    if (task.completed) return 'bg-gray-50 border-gray-200';
+    const baseClass = isSelected ? 'border-primary-300 bg-primary-50' : '';
+    
+    if (task.completed) return `bg-gray-50 border-gray-200 ${baseClass}`;
     
     switch (dueDateStatus) {
       case 'overdue':
-        return 'bg-white border-red-200 hover:border-red-300';
+        return `bg-white border-red-200 hover:border-red-300 ${baseClass}`;
       case 'due-today':
-        return 'bg-white border-orange-200 hover:border-orange-300';
+        return `bg-white border-orange-200 hover:border-orange-300 ${baseClass}`;
       default:
-        return 'bg-white border-gray-200 hover:border-gray-300';
+        return `bg-white border-gray-200 hover:border-gray-300 ${baseClass}`;
     }
   };
 
@@ -536,6 +833,19 @@ const TaskCard = ({ task, projectName, projects, isEditing, onToggleComplete, on
   return (
     <Card className={`p-4 transition-all duration-200 ${getBorderClass()}`}>
       <div className="flex items-start gap-3">
+        {/* Selection Checkbox */}
+        <button
+          onClick={() => onSelect(task.Id)}
+          className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+            isSelected
+              ? 'bg-primary-500 border-primary-500 text-white'
+              : 'border-gray-300 hover:border-primary-500'
+          }`}
+        >
+          {isSelected && <ApperIcon name="Check" size={12} />}
+        </button>
+        
+        {/* Completion Toggle */}
         <button
           onClick={() => onToggleComplete(task.Id)}
           className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${

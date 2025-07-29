@@ -253,7 +253,7 @@ const updateData = {
     }
   },
 
-  async delete(id) {
+async delete(id) {
     try {
       const { ApperClient } = window.ApperSDK;
       const apperClient = new ApperClient({
@@ -295,6 +295,120 @@ const updateData = {
     } catch (error) {
       if (error?.response?.data?.message) {
         console.error("Error deleting task:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      return false;
+    }
+  },
+
+  async bulkUpdate(taskIds, updateData) {
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+
+      const records = taskIds.map(id => ({
+        Id: parseInt(id),
+        ...updateData
+      }));
+
+      const params = {
+        records: records
+      };
+
+      const response = await apperClient.updateRecord('task', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        toast.error(response.message);
+        return false;
+      }
+
+      if (response.results) {
+        const successfulUpdates = response.results.filter(result => result.success);
+        const failedUpdates = response.results.filter(result => !result.success);
+
+        if (failedUpdates.length > 0) {
+          console.error(`Failed to update tasks ${failedUpdates.length} records:${JSON.stringify(failedUpdates)}`);
+          
+          failedUpdates.forEach(record => {
+            record.errors?.forEach(error => {
+              toast.error(`${error.fieldLabel}: ${error.message}`);
+            });
+            if (record.message) toast.error(record.message);
+          });
+        }
+
+        if (successfulUpdates.length > 0) {
+          const action = updateData.completed !== undefined 
+            ? (updateData.completed ? 'marked as complete' : 'marked as incomplete')
+            : updateData.priority 
+            ? `priority changed to ${updateData.priority}`
+            : updateData.projectId 
+            ? 'moved to project'
+            : 'updated';
+          
+          toast.success(`${successfulUpdates.length} task${successfulUpdates.length > 1 ? 's' : ''} ${action}!`);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error in bulk update:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      return false;
+    }
+  },
+
+  async bulkDelete(taskIds) {
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+
+      const params = {
+        RecordIds: taskIds.map(id => parseInt(id))
+      };
+
+      const response = await apperClient.deleteRecord('task', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        toast.error(response.message);
+        return false;
+      }
+
+      if (response.results) {
+        const successfulDeletions = response.results.filter(result => result.success);
+        const failedDeletions = response.results.filter(result => !result.success);
+
+        if (failedDeletions.length > 0) {
+          console.error(`Failed to delete tasks ${failedDeletions.length} records:${JSON.stringify(failedDeletions)}`);
+          
+          failedDeletions.forEach(record => {
+            if (record.message) toast.error(record.message);
+          });
+        }
+
+        if (successfulDeletions.length > 0) {
+          toast.success(`${successfulDeletions.length} task${successfulDeletions.length > 1 ? 's' : ''} deleted successfully!`);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error in bulk delete:", error?.response?.data?.message);
       } else {
         console.error(error.message);
       }
