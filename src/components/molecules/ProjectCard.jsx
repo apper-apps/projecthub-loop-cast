@@ -71,14 +71,35 @@ const ProjectCard = ({ project, onEdit, onDelete, onClick }) => {
       <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
         {project.description || "No description provided"}
       </p>
-      
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <Badge variant={getStatusVariant(project.status)}>
-          {getStatusLabel(project.status)}
-        </Badge>
-        <div className="flex items-center text-xs text-gray-500">
-          <ApperIcon name="Calendar" className="w-3 h-3 mr-1" />
-          {format(new Date(project.updatedAt), "MMM d")}
+<div className="space-y-3 pt-2 border-t border-gray-100">
+        <div className="flex items-center justify-between">
+          <Badge variant={getStatusVariant(project.status)}>
+            {getStatusLabel(project.status)}
+          </Badge>
+          <div className="flex items-center text-xs text-gray-500">
+            <ApperIcon name="Calendar" className="w-3 h-3 mr-1" />
+            {format(new Date(project.updatedAt), "MMM d")}
+          </div>
+        </div>
+        
+        {/* Progress Section */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">
+              {project.completedTaskCount || 0} of {project.totalTaskCount || 0} tasks completed
+            </span>
+            <span className="font-medium text-gray-700">
+              {project.percentageCompleted || 0}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 transition-all duration-300"
+              style={{
+                width: `${project.percentageCompleted || 0}%`
+              }}
+            />
+          </div>
         </div>
       </div>
     </Card>

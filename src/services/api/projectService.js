@@ -7,7 +7,7 @@ class ProjectService {
         apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
       });
 
-      const params = {
+const params = {
 fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
@@ -20,6 +20,9 @@ fields: [
           { field: { Name: "status" } },
           { field: { Name: "createdAt" } },
           { field: { Name: "updatedAt" } },
+          { field: { Name: "completedTaskCount" } },
+          { field: { Name: "totalTaskCount" } },
+          { field: { Name: "percentageCompleted" } },
           {
             field: { Name: "CreatedBy" },
             referenceField: { field: { Name: "Name" } }

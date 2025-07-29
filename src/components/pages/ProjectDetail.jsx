@@ -131,7 +131,7 @@ const ProjectDetail = () => {
               {project.description}
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500">
+<div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <ApperIcon name="Calendar" size={16} />
                 <span>Created: {format(new Date(project.createdAt), 'MMM dd, yyyy')}</span>
@@ -143,6 +143,29 @@ const ProjectDetail = () => {
                 </div>
               )}
             </div>
+
+            {/* Project Progress Section */}
+            {(project.totalTaskCount || 0) > 0 && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Project Progress</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {project.percentageCompleted || 0}%
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-300"
+                    style={{
+                      width: `${project.percentageCompleted || 0}%`
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-600">
+                  {project.completedTaskCount || 0} of {project.totalTaskCount || 0} tasks completed
+                </p>
+              </div>
+            )}
           </div>
           
           <Button
