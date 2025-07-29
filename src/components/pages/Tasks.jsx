@@ -12,7 +12,7 @@ import Textarea from "@/components/atoms/Textarea";
 import Input from "@/components/atoms/Input";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
-
+import Badge from "@/components/atoms/Badge";
 const Tasks = () => {
 const [searchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
@@ -20,11 +20,12 @@ const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     title: '',
     description: '',
     projectId: '',
-    dueDate: ''
+    dueDate: '',
+    priority: 'Medium'
   });
 const [formErrors, setFormErrors] = useState({});
   const [selectedProjectFilter, setSelectedProjectFilter] = useState('');
@@ -82,8 +83,8 @@ const handleFormSubmit = async (e) => {
 
 try {
       const newTask = await taskService.create(formData);
-      setTasks(prev => [...prev, newTask]);
-      setFormData({ title: '', description: '', projectId: '', dueDate: '' });
+setTasks(prev => [...prev, newTask]);
+      setFormData({ title: '', description: '', projectId: '', dueDate: '', priority: 'Medium' });
       setFormErrors({});
       setShowForm(false);
     } catch (err) {
@@ -187,7 +188,7 @@ if (loading) return <Loading />;
       </div>
 
 {showForm && (
-        <Card className="p-6">
+<Card className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Task</h3>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
@@ -212,6 +213,22 @@ if (loading) return <Loading />;
               {formErrors.projectId && (
                 <p className="text-red-600 text-sm mt-1">{formErrors.projectId}</p>
               )}
+            </div>
+
+            <div>
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+                Priority *
+              </label>
+              <select
+                id="priority"
+                value={formData.priority}
+                onChange={(e) => handleInputChange('priority', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
             </div>
 
             <div>
@@ -262,7 +279,7 @@ if (loading) return <Loading />;
                 variant="outline"
                 onClick={() => {
                   setShowForm(false);
-                  setFormData({ title: '', description: '', projectId: '', dueDate: '' });
+                  setFormData({ title: '', description: '', projectId: '', dueDate: '', priority: 'Medium' });
                   setFormErrors({});
                 }}
               >
@@ -348,6 +365,20 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
 
   const dueDateStatus = getDueDateStatus(task.dueDate);
   
+  // Get priority badge variant
+  const getPriorityVariant = (priority) => {
+    switch (priority) {
+      case 'High':
+        return 'danger';
+      case 'Medium':
+        return 'warning';
+      case 'Low':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+  
   // Determine card border color based on due date status
   const getBorderClass = () => {
     if (task.completed) return 'bg-gray-50 border-gray-200';
@@ -381,6 +412,11 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
             <h3 className={`font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
               {task.title}
             </h3>
+            {task.priority && (
+              <Badge variant={getPriorityVariant(task.priority)}>
+                {task.priority}
+              </Badge>
+            )}
             {projectName && (
               <span className="px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full">
                 {projectName}
