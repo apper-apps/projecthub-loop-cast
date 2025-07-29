@@ -116,14 +116,7 @@ const handleToggleComplete = async (taskId) => {
       await taskService.delete(taskId);
       setTasks(prev => prev.filter(task => task.Id !== taskId));
     } catch (err) {
-      console.error('Error deleting task:', err);
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: '' }));
+console.error('Error deleting task:', err);
     }
   };
 
