@@ -5,7 +5,7 @@ import ApperIcon from "@/components/ApperIcon";
 import { format } from "date-fns";
 
 const ProjectCard = ({ project, onEdit, onDelete, onClick }) => {
-  const getStatusVariant = (status) => {
+const getStatusVariant = (status) => {
     switch (status) {
       case "active":
         return "primary";
@@ -13,12 +13,14 @@ const ProjectCard = ({ project, onEdit, onDelete, onClick }) => {
         return "success";
       case "on-hold":
         return "warning";
+      case "archived":
+        return "secondary";
       default:
         return "default";
     }
   };
 
-  const getStatusLabel = (status) => {
+const getStatusLabel = (status) => {
     switch (status) {
       case "active":
         return "Active";
@@ -26,6 +28,10 @@ const ProjectCard = ({ project, onEdit, onDelete, onClick }) => {
         return "Completed";
       case "on-hold":
         return "On Hold";
+      case "archived":
+        return "Archived";
+      case "not-started":
+        return "Not Started";
       default:
         return "Not Started";
     }
