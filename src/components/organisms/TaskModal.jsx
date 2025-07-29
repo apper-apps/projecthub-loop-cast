@@ -167,10 +167,11 @@ const TaskModal = ({ isOpen, onClose, onSave, projects = [], task = null, title 
               Cancel
             </Button>
             <Button
-              type="submit"
+type="button"
               variant="primary"
               className="flex-1"
               disabled={isSubmitting}
+              onClick={(e) => handleSubmit(e)}
             >
               {isSubmitting ? (
                 <div className="flex items-center">
