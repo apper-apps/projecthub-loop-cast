@@ -1,94 +1,251 @@
-import projectsData from "@/services/mockData/projects.json";
-
 class ProjectService {
-  constructor() {
-    this.storageKey = "projecthub_projects";
-    this.initializeData();
-  }
-
-  initializeData() {
-    const existingData = localStorage.getItem(this.storageKey);
-    if (!existingData) {
-      localStorage.setItem(this.storageKey, JSON.stringify(projectsData));
-    }
-  }
-
-  getData() {
-    const data = localStorage.getItem(this.storageKey);
-    return data ? JSON.parse(data) : [];
-  }
-
-  saveData(data) {
-    localStorage.setItem(this.storageKey, JSON.stringify(data));
-  }
-
   async getAll() {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [...this.getData()].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+
+      const params = {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "Tags" } },
+          { field: { Name: "Owner" } },
+          { field: { Name: "title" } },
+          { field: { Name: "description" } },
+          { field: { Name: "status" } },
+          { field: { Name: "createdAt" } },
+          { field: { Name: "updatedAt" } }
+        ],
+        orderBy: [
+          {
+            fieldName: "updatedAt",
+            sorttype: "DESC"
+          }
+        ]
+      };
+
+      const response = await apperClient.fetchRecords('project', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (!response.data || response.data.length === 0) {
+        return [];
+      }
+
+      return response.data;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error fetching projects:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      throw error;
+    }
   }
 
   async getById(id) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const projects = this.getData();
-    const project = projects.find(p => p.Id === parseInt(id));
-    if (!project) {
-      throw new Error("Project not found");
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+
+      const params = {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "Tags" } },
+          { field: { Name: "Owner" } },
+          { field: { Name: "title" } },
+          { field: { Name: "description" } },
+          { field: { Name: "status" } },
+          { field: { Name: "createdAt" } },
+          { field: { Name: "updatedAt" } }
+        ]
+      };
+
+      const response = await apperClient.getRecordById('project', parseInt(id), params);
+
+      if (!response || !response.data) {
+        throw new Error("Project not found");
+      }
+
+      return response.data;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error(`Error fetching project with ID ${id}:`, error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      throw error;
     }
-    return { ...project };
   }
 
   async create(projectData) {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const projects = this.getData();
-    const maxId = projects.length > 0 ? Math.max(...projects.map(p => p.Id)) : 0;
-    
-    const newProject = {
-      Id: maxId + 1,
-      title: projectData.title,
-      description: projectData.description || "",
-      status: projectData.status || "not-started",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
 
-    const updatedProjects = [newProject, ...projects];
-    this.saveData(updatedProjects);
-    return { ...newProject };
+      const params = {
+        records: [
+          {
+            title: projectData.title,
+            description: projectData.description || "",
+            status: projectData.status || "not-started",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      };
+
+      const response = await apperClient.createRecord('project', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const successfulRecords = response.results.filter(result => result.success);
+        const failedRecords = response.results.filter(result => !result.success);
+
+        if (failedRecords.length > 0) {
+          console.error(`Failed to create projects ${failedRecords.length} records:${JSON.stringify(failedRecords)}`);
+          
+          failedRecords.forEach(record => {
+            record.errors?.forEach(error => {
+              throw new Error(`${error.fieldLabel}: ${error.message}`);
+            });
+            if (record.message) throw new Error(record.message);
+          });
+        }
+
+        if (successfulRecords.length > 0) {
+          return successfulRecords[0].data;
+        }
+      }
+
+      throw new Error("Failed to create project");
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error creating project:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      throw error;
+    }
   }
 
   async update(id, projectData) {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const projects = this.getData();
-    const index = projects.findIndex(p => p.Id === parseInt(id));
-    
-    if (index === -1) {
-      throw new Error("Project not found");
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+
+      const updateData = {
+        Id: parseInt(id),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (projectData.title !== undefined) updateData.title = projectData.title;
+      if (projectData.description !== undefined) updateData.description = projectData.description;
+      if (projectData.status !== undefined) updateData.status = projectData.status;
+
+      const params = {
+        records: [updateData]
+      };
+
+      const response = await apperClient.updateRecord('project', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const successfulUpdates = response.results.filter(result => result.success);
+        const failedUpdates = response.results.filter(result => !result.success);
+
+        if (failedUpdates.length > 0) {
+          console.error(`Failed to update projects ${failedUpdates.length} records:${JSON.stringify(failedUpdates)}`);
+          
+          failedUpdates.forEach(record => {
+            record.errors?.forEach(error => {
+              throw new Error(`${error.fieldLabel}: ${error.message}`);
+            });
+            if (record.message) throw new Error(record.message);
+          });
+        }
+
+        if (successfulUpdates.length > 0) {
+          return successfulUpdates[0].data;
+        }
+      }
+
+      throw new Error("Failed to update project");
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error updating project:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      throw error;
     }
-
-    const updatedProject = {
-      ...projects[index],
-      title: projectData.title,
-      description: projectData.description || "",
-      status: projectData.status || projects[index].status,
-      updatedAt: new Date().toISOString()
-    };
-
-    projects[index] = updatedProject;
-    this.saveData(projects);
-    return { ...updatedProject };
   }
 
   async delete(id) {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const projects = this.getData();
-    const filteredProjects = projects.filter(p => p.Id !== parseInt(id));
-    
-    if (filteredProjects.length === projects.length) {
-      throw new Error("Project not found");
-    }
+    try {
+      const { ApperClient } = window.ApperSDK;
+      const apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
 
-    this.saveData(filteredProjects);
-    return true;
+      const params = {
+        RecordIds: [parseInt(id)]
+      };
+
+      const response = await apperClient.deleteRecord('project', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const successfulDeletions = response.results.filter(result => result.success);
+        const failedDeletions = response.results.filter(result => !result.success);
+
+        if (failedDeletions.length > 0) {
+          console.error(`Failed to delete projects ${failedDeletions.length} records:${JSON.stringify(failedDeletions)}`);
+          
+          failedDeletions.forEach(record => {
+            if (record.message) throw new Error(record.message);
+          });
+        }
+
+        return successfulDeletions.length > 0;
+      }
+
+      return false;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        console.error("Error deleting project:", error?.response?.data?.message);
+      } else {
+        console.error(error.message);
+      }
+      throw error;
+    }
   }
 }
 
