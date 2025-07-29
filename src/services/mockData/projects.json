@@ -1,0 +1,42 @@
+[
+  {
+    "Id": 1,
+    "title": "Website Redesign",
+    "description": "Complete overhaul of the company website with modern design and improved user experience. Includes responsive design, SEO optimization, and performance improvements.",
+    "status": "active",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-20T14:45:00Z"
+  },
+  {
+    "Id": 2,
+    "title": "Mobile App Development",
+    "description": "Native iOS and Android app for customer engagement and service booking. Features include user authentication, booking system, and push notifications.",
+    "status": "active",
+    "createdAt": "2024-01-10T09:15:00Z",
+    "updatedAt": "2024-01-18T16:20:00Z"
+  },
+  {
+    "Id": 3,
+    "title": "Database Migration",
+    "description": "Migrate legacy database system to modern cloud infrastructure with improved performance and security measures.",
+    "status": "completed",
+    "createdAt": "2023-12-05T11:00:00Z",
+    "updatedAt": "2024-01-12T13:30:00Z"
+  },
+  {
+    "Id": 4,
+    "title": "Marketing Campaign Q1",
+    "description": "Comprehensive marketing strategy for Q1 including social media campaigns, content creation, and influencer partnerships.",
+    "status": "on-hold",
+    "createdAt": "2024-01-08T08:45:00Z",
+    "updatedAt": "2024-01-15T12:10:00Z"
+  },
+  {
+    "Id": 5,
+    "title": "Team Training Program",
+    "description": "Develop and implement comprehensive training program for new team members covering technical skills and company processes.",
+    "status": "not-started",
+    "createdAt": "2024-01-22T15:20:00Z",
+    "updatedAt": "2024-01-22T15:20:00Z"
+  }
+]
