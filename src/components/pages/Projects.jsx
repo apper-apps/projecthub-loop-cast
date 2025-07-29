@@ -15,7 +15,11 @@ const Projects = () => {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
   const loadProjects = async () => {
     setLoading(true);
     setError("");
@@ -77,12 +81,21 @@ const navigate = useNavigate();
 const handleViewTasks = (projectId) => {
     navigate(`/projects/${projectId}`);
   };
+// Filter projects based on search query
+  const filteredProjects = projects.filter(project => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (project.title?.toLowerCase() || '').includes(query) ||
+      (project.description?.toLowerCase() || '').includes(query)
+    );
+  });
 
   if (loading) return <Loading type="projects" />;
   if (error) return <Error message={error} onRetry={loadProjects} />;
 
   return (
-    <div className="space-y-6">
+<div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
@@ -96,7 +109,18 @@ const handleViewTasks = (projectId) => {
         </Button>
       </div>
 
-      {projects.length === 0 ? (
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Search projects by title or description..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+        />
+      </div>
+{projects.length === 0 ? (
         <Empty
           title="No projects yet"
           message="Create your first project to get started with organizing your work."
@@ -104,16 +128,22 @@ const handleViewTasks = (projectId) => {
           onAction={handleCreateProject}
           icon="Folder"
         />
+      ) : filteredProjects.length === 0 ? (
+        <Empty
+          title="No results found"
+          message={`No projects match "${searchQuery}". Try adjusting your search terms.`}
+          icon="Search"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-<ProjectCard
-          key={project.Id}
-          project={project}
-          onEdit={handleEditProject}
-          onDelete={handleDeleteProject}
-          onClick={(projectId) => navigate(`/projects/${projectId}`)}
-        />
+          {filteredProjects.map((project) => (
+            <ProjectCard
+              key={project.Id}
+              project={project}
+              onEdit={handleEditProject}
+              onDelete={handleDeleteProject}
+              onClick={(projectId) => navigate(`/projects/${projectId}`)}
+            />
           ))}
         </div>
       )}

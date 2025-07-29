@@ -33,6 +33,11 @@ const [tasks, setTasks] = useState([]);
   const [filterBy, setFilterBy] = useState('all');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
 useEffect(() => {
     loadProjects();
     loadTasks();
@@ -170,11 +175,20 @@ const handleProjectFilterChange = (projectId) => {
     setSortOrder(order);
   };
 
-  // Apply comprehensive filtering and sorting
+// Apply comprehensive filtering and sorting
   const applyFiltersAndSort = () => {
     let filtered = [...tasks];
 
-    // Apply project filter first if selected
+    // Apply search filter first
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(task => 
+        (task.title?.toLowerCase() || '').includes(query) ||
+        (task.description?.toLowerCase() || '').includes(query)
+      );
+    }
+
+    // Apply project filter
     if (selectedProjectFilter) {
       filtered = filtered.filter(task => task.projectId === parseInt(selectedProjectFilter));
     }
@@ -247,10 +261,10 @@ const handleProjectFilterChange = (projectId) => {
 
 if (loading) return <Loading />;
   if (error) return <Error message={error} onRetry={loadTasks} />;
-  return (
+return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-<div>
+        <div>
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
           <p className="text-gray-600 mt-1">
             Manage your project tasks and to-dos
@@ -263,6 +277,17 @@ if (loading) return <Loading />;
             </div>
           )}
 
+          {/* Search Bar */}
+          <div className="relative max-w-md mt-4">
+            <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search tasks by title or description..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            />
+          </div>
           {/* Filter Buttons */}
           <div className="mt-6">
             <div className="flex flex-wrap gap-2">
@@ -376,13 +401,22 @@ if (loading) return <Loading />;
         title="Create New Task"
       />
 
-{filteredTasks.length === 0 ? (
-<Empty
+{tasks.length === 0 ? (
+        <Empty
           title="No tasks yet"
           message="Create your first task to get started with managing your to-dos."
           icon="CheckSquare"
           actionLabel="Add Task"
           onAction={() => setShowTaskModal(true)}
+        />
+      ) : filteredTasks.length === 0 ? (
+        <Empty
+          title="No results found"
+          message={searchQuery.trim() 
+            ? `No tasks match "${searchQuery}". Try adjusting your search terms or filters.`
+            : "No tasks match the selected filters. Try adjusting your filter criteria."
+          }
+          icon="Search"
         />
       ) : (
         <div className="space-y-4">
