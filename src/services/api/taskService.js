@@ -145,7 +145,8 @@ const params = {
             projectId: parseInt(taskData.projectId),
             completed: false,
             createdAt: new Date().toISOString(),
-            dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null
+            dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null,
+            priority: taskData.priority || 'Medium'
           }
         ]
       };
@@ -198,16 +199,16 @@ const params = {
         apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
       });
 
-      const updateData = {
+const updateData = {
         Id: parseInt(id)
       };
 
-if (taskData.title !== undefined) updateData.title = taskData.title;
+      if (taskData.title !== undefined) updateData.title = taskData.title;
       if (taskData.description !== undefined) updateData.description = taskData.description;
       if (taskData.projectId !== undefined) updateData.projectId = parseInt(taskData.projectId);
       if (taskData.completed !== undefined) updateData.completed = taskData.completed;
       if (taskData.dueDate !== undefined) updateData.dueDate = taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null;
-
+      if (taskData.priority !== undefined) updateData.priority = taskData.priority;
       const params = {
         records: [updateData]
       };

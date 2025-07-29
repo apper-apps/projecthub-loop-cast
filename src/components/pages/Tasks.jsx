@@ -98,7 +98,9 @@ setTasks(prev => [...prev, newTask]);
     }
   };
 
-const handleToggleComplete = async (taskId) => {
+const [editingTaskId, setEditingTaskId] = useState(null);
+
+  const handleToggleComplete = async (taskId) => {
     try {
       const updatedTask = await taskService.toggleComplete(taskId);
       setTasks(prev => prev.map(task => 
@@ -118,10 +120,27 @@ const handleToggleComplete = async (taskId) => {
       await taskService.delete(taskId);
       setTasks(prev => prev.filter(task => task.Id !== taskId));
     } catch (err) {
-console.error('Error deleting task:', err);
+      console.error('Error deleting task:', err);
     }
   };
 
+  const handleEditTask = (taskId) => {
+    setEditingTaskId(taskId);
+  };
+
+  const handleUpdateTask = async (taskId, taskData) => {
+    try {
+      const updatedTask = await taskService.update(taskId, taskData);
+      if (updatedTask) {
+        setTasks(prev => prev.map(task => 
+          task.Id === taskId ? updatedTask : task
+        ));
+        setEditingTaskId(null);
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+    }
+  };
   const handleProjectFilterChange = (projectId) => {
     setSelectedProjectFilter(projectId);
     loadTasks();
@@ -314,8 +333,13 @@ if (loading) return <Loading />;
                     key={task.Id}
                     task={task}
                     projectName={getProjectName(task.projectId)}
+                    projects={projects}
+                    isEditing={editingTaskId === task.Id}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
+                    onEdit={handleEditTask}
+                    onUpdate={handleUpdateTask}
+                    onCancelEdit={() => setEditingTaskId(null)}
                   />
                 ))}
               </div>
@@ -329,12 +353,17 @@ if (loading) return <Loading />;
               </h2>
               <div className="space-y-3">
                 {completedTasks.map(task => (
-<TaskCard
+                  <TaskCard
                     key={task.Id}
                     task={task}
                     projectName={getProjectName(task.projectId)}
+                    projects={projects}
+                    isEditing={editingTaskId === task.Id}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
+                    onEdit={handleEditTask}
+                    onUpdate={handleUpdateTask}
+                    onCancelEdit={() => setEditingTaskId(null)}
                   />
                 ))}
               </div>
@@ -346,7 +375,7 @@ if (loading) return <Loading />;
   );
 };
 
-const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
+const TaskCard = ({ task, projectName, projects, isEditing, onToggleComplete, onDelete, onEdit, onUpdate, onCancelEdit }) => {
   // Determine due date status
   const getDueDateStatus = (dueDate) => {
     if (!dueDate) return null;
@@ -392,6 +421,19 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
         return 'bg-white border-gray-200 hover:border-gray-300';
     }
   };
+
+  if (isEditing) {
+    return (
+      <Card className={`p-4 transition-all duration-200 ${getBorderClass()}`}>
+        <EditTaskForm
+          task={task}
+          projects={projects}
+          onSave={(updatedData) => onUpdate(task.Id, updatedData)}
+          onCancel={onCancelEdit}
+        />
+      </Card>
+    );
+  }
 
   return (
     <Card className={`p-4 transition-all duration-200 ${getBorderClass()}`}>
@@ -460,6 +502,14 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => onEdit(task.Id)}
+            className="text-gray-400 hover:text-blue-600"
+          >
+            <ApperIcon name="Edit" size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onDelete(task.Id)}
             className="text-gray-400 hover:text-red-600"
           >
@@ -468,6 +518,148 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
         </div>
       </div>
     </Card>
+  );
+};
+
+// Edit Task Form Component
+const EditTaskForm = ({ task, projects, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: task.title || '',
+    description: task.description || '',
+    projectId: task.projectId || '',
+    dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+    priority: task.priority || 'Medium'
+  });
+  const [formErrors, setFormErrors] = useState({});
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const errors = {};
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required';
+    }
+    if (!formData.projectId) {
+      errors.projectId = 'Project is required';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-1">
+            Title *
+          </label>
+          <Input
+            id="edit-title"
+            value={formData.title}
+            onChange={(e) => handleInputChange('title', e.target.value)}
+            placeholder="Enter task title"
+            className={formErrors.title ? 'border-red-300' : ''}
+          />
+          {formErrors.title && (
+            <p className="text-red-600 text-sm mt-1">{formErrors.title}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="edit-priority" className="block text-sm font-medium text-gray-700 mb-1">
+            Priority
+          </label>
+          <select
+            id="edit-priority"
+            value={formData.priority}
+            onChange={(e) => handleInputChange('priority', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <Textarea
+          id="edit-description"
+          value={formData.description}
+          onChange={(e) => handleInputChange('description', e.target.value)}
+          placeholder="Enter task description (optional)"
+          rows={3}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="edit-project" className="block text-sm font-medium text-gray-700 mb-1">
+            Project *
+          </label>
+          <select
+            id="edit-project"
+            value={formData.projectId}
+            onChange={(e) => handleInputChange('projectId', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+              formErrors.projectId ? 'border-red-300' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Select a project</option>
+            {projects.map(project => (
+              <option key={project.Id} value={project.Id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+          {formErrors.projectId && (
+            <p className="text-red-600 text-sm mt-1">{formErrors.projectId}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="edit-dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Due Date
+          </label>
+          <Input
+            id="edit-dueDate"
+            type="date"
+            value={formData.dueDate}
+            onChange={(e) => handleInputChange('dueDate', e.target.value)}
+            className="w-full"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary">
+          Save Changes
+        </Button>
+      </div>
+    </form>
   );
 };
 
