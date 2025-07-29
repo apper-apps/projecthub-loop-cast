@@ -1,35 +1,59 @@
-import React, { useState, useEffect } from "react";
-import Button from "@/components/atoms/Button";
-import Input from "@/components/atoms/Input";
-import Textarea from "@/components/atoms/Textarea";
-import Card from "@/components/atoms/Card";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
+import { taskService } from "@/services/api/taskService";
+import { projectService } from "@/services/api/projectService";
 import ApperIcon from "@/components/ApperIcon";
 import Loading from "@/components/ui/Loading";
 import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
-import { taskService } from "@/services/api/taskService";
-import { format } from "date-fns";
+import Projects from "@/components/pages/Projects";
+import Textarea from "@/components/atoms/Textarea";
+import Input from "@/components/atoms/Input";
+import Button from "@/components/atoms/Button";
+import Card from "@/components/atoms/Card";
 
 const Tasks = () => {
+const [searchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    description: ''
+    description: '',
+    projectId: ''
   });
-  const [formErrors, setFormErrors] = useState({});
-
-  useEffect(() => {
+const [formErrors, setFormErrors] = useState({});
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState('');
+useEffect(() => {
+    loadProjects();
     loadTasks();
   }, []);
 
-  const loadTasks = async () => {
+  useEffect(() => {
+    const projectId = searchParams.get('projectId');
+    if (projectId) {
+      setSelectedProjectFilter(projectId);
+    }
+  }, [searchParams]);
+
+const loadProjects = async () => {
+    try {
+      const data = await projectService.getAll();
+      setProjects(data);
+    } catch (err) {
+      console.error('Error loading projects:', err);
+    }
+  };
+
+const loadTasks = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = taskService.getAll();
+      const projectId = selectedProjectFilter || searchParams.get('projectId');
+      const data = await taskService.getAll(projectId ? parseInt(projectId) : null);
       setTasks(data);
     } catch (err) {
       setError('Failed to load tasks');
@@ -38,8 +62,7 @@ const Tasks = () => {
       setLoading(false);
     }
   };
-
-  const handleFormSubmit = async (e) => {
+const handleFormSubmit = async (e) => {
     e.preventDefault();
     
     // Validate form
@@ -47,26 +70,35 @@ const Tasks = () => {
     if (!formData.title.trim()) {
       errors.title = 'Title is required';
     }
+    if (!formData.projectId) {
+      errors.projectId = 'Project is required';
+    }
     
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
 
-    try {
-      const newTask = taskService.create(formData);
+try {
+      const newTask = await taskService.create(formData);
       setTasks(prev => [...prev, newTask]);
-      setFormData({ title: '', description: '' });
+      setFormData({ title: '', description: '', projectId: '' });
       setFormErrors({});
       setShowForm(false);
     } catch (err) {
       console.error('Error creating task:', err);
     }
   };
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
 
-  const handleToggleComplete = async (taskId) => {
+const handleToggleComplete = async (taskId) => {
     try {
-      const updatedTask = taskService.toggleComplete(taskId);
+      const updatedTask = await taskService.toggleComplete(taskId);
       setTasks(prev => prev.map(task => 
         task.Id === taskId ? updatedTask : task
       ));
@@ -81,7 +113,7 @@ const Tasks = () => {
     }
 
     try {
-      taskService.delete(taskId);
+      await taskService.delete(taskId);
       setTasks(prev => prev.filter(task => task.Id !== taskId));
     } catch (err) {
       console.error('Error deleting task:', err);
@@ -95,12 +127,25 @@ const Tasks = () => {
     }
   };
 
-  if (loading) return <Loading />;
+  const handleProjectFilterChange = (projectId) => {
+    setSelectedProjectFilter(projectId);
+    loadTasks();
+  };
+
+  // Filter tasks based on selected project
+  const filteredTasks = selectedProjectFilter 
+    ? tasks.filter(task => task.projectId === parseInt(selectedProjectFilter))
+    : tasks;
+
+  const completedTasks = filteredTasks.filter(task => task.completed);
+  const pendingTasks = filteredTasks.filter(task => !task.completed);
+
+  const getProjectName = (projectId) => {
+    const project = projects.find(p => p.Id === projectId);
+    return project ? project.title : 'Unknown Project';
+  };
+if (loading) return <Loading />;
   if (error) return <Error message={error} onRetry={loadTasks} />;
-
-  const completedTasks = tasks.filter(task => task.completed);
-  const pendingTasks = tasks.filter(task => !task.completed);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -109,13 +154,33 @@ const Tasks = () => {
           <p className="text-gray-600 mt-1">
             Manage your project tasks and to-dos
           </p>
-          {tasks.length > 0 && (
+{filteredTasks.length > 0 && (
             <div className="flex gap-4 mt-3 text-sm text-gray-500">
               <span>{pendingTasks.length} pending</span>
               <span>{completedTasks.length} completed</span>
-              <span>{tasks.length} total</span>
+              <span>{filteredTasks.length} total</span>
             </div>
           )}
+
+          {/* Project Filter */}
+          <div className="mt-4">
+            <label htmlFor="projectFilter" className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Project
+            </label>
+            <select
+              id="projectFilter"
+              value={selectedProjectFilter}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="">All Projects</option>
+              {projects.map(project => (
+                <option key={project.Id} value={project.Id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <Button
           onClick={() => setShowForm(!showForm)}
@@ -127,10 +192,34 @@ const Tasks = () => {
         </Button>
       </div>
 
-      {showForm && (
+{showForm && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Task</h3>
           <form onSubmit={handleFormSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-1">
+                Project *
+              </label>
+              <select
+                id="projectId"
+                value={formData.projectId}
+                onChange={(e) => handleInputChange('projectId', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                  formErrors.projectId ? 'border-red-300' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select a project</option>
+                {projects.map(project => (
+                  <option key={project.Id} value={project.Id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
+              {formErrors.projectId && (
+                <p className="text-red-600 text-sm mt-1">{formErrors.projectId}</p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                 Title *
@@ -166,7 +255,7 @@ const Tasks = () => {
                 variant="outline"
                 onClick={() => {
                   setShowForm(false);
-                  setFormData({ title: '', description: '' });
+                  setFormData({ title: '', description: '', projectId: '' });
                   setFormErrors({});
                 }}
               >
@@ -180,7 +269,7 @@ const Tasks = () => {
         </Card>
       )}
 
-      {tasks.length === 0 ? (
+{filteredTasks.length === 0 ? (
         <Empty
           title="No tasks yet"
           message="Create your first task to get started with managing your to-dos."
@@ -196,10 +285,11 @@ const Tasks = () => {
                 Pending Tasks ({pendingTasks.length})
               </h2>
               <div className="space-y-3">
-                {pendingTasks.map(task => (
+{pendingTasks.map(task => (
                   <TaskCard
                     key={task.Id}
                     task={task}
+                    projectName={getProjectName(task.projectId)}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
                   />
@@ -215,9 +305,10 @@ const Tasks = () => {
               </h2>
               <div className="space-y-3">
                 {completedTasks.map(task => (
-                  <TaskCard
+<TaskCard
                     key={task.Id}
                     task={task}
+                    projectName={getProjectName(task.projectId)}
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDeleteTask}
                   />
@@ -231,7 +322,7 @@ const Tasks = () => {
   );
 };
 
-const TaskCard = ({ task, onToggleComplete, onDelete }) => {
+const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
   return (
     <Card className={`p-4 transition-all duration-200 ${task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
       <div className="flex items-start gap-3">
@@ -247,9 +338,16 @@ const TaskCard = ({ task, onToggleComplete, onDelete }) => {
         </button>
 
         <div className="flex-1 min-w-0">
-          <h3 className={`font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-            {task.title}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className={`font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+              {task.title}
+            </h3>
+            {projectName && (
+              <span className="px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full">
+                {projectName}
+              </span>
+            )}
+          </div>
           {task.description && (
             <p className={`text-sm mt-1 ${task.completed ? 'text-gray-400' : 'text-gray-600'}`}>
               {task.description}

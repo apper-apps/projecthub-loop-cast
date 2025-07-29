@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "@/components/atoms/Button";
 import ProjectCard from "@/components/molecules/ProjectCard";
 import ProjectModal from "@/components/organisms/ProjectModal";
@@ -8,7 +9,6 @@ import Empty from "@/components/ui/Empty";
 import ApperIcon from "@/components/ApperIcon";
 import { projectService } from "@/services/api/projectService";
 import { toast } from "react-toastify";
-
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +55,8 @@ const Projects = () => {
     }
   };
 
+const navigate = useNavigate();
+
   const handleSaveProject = async (formData) => {
     try {
       if (editingProject) {
@@ -70,6 +72,10 @@ const Projects = () => {
       toast.error("Failed to save project");
       throw error;
     }
+  };
+
+  const handleViewTasks = (projectId) => {
+    navigate(`/tasks?projectId=${projectId}`);
   };
 
   if (loading) return <Loading type="projects" />;
@@ -101,11 +107,12 @@ const Projects = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <ProjectCard
+<ProjectCard
               key={project.Id}
               project={project}
               onEdit={handleEditProject}
               onDelete={handleDeleteProject}
+              onViewTasks={handleViewTasks}
             />
           ))}
         </div>

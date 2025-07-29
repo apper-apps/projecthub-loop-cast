@@ -5,7 +5,10 @@ let tasks = [...mockTasks];
 let nextId = Math.max(...tasks.map(task => task.Id)) + 1;
 
 export const taskService = {
-  getAll() {
+getAll(projectId = null) {
+    if (projectId) {
+      return [...tasks].filter(task => task.projectId === projectId);
+    }
     return [...tasks];
   },
 
@@ -17,11 +20,12 @@ export const taskService = {
     return tasks.find(task => task.Id === taskId) || null;
   },
 
-  create(taskData) {
+create(taskData) {
     const newTask = {
       Id: nextId++,
       title: taskData.title || '',
       description: taskData.description || '',
+      projectId: parseInt(taskData.projectId),
       completed: false,
       createdAt: new Date().toISOString()
     };
