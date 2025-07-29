@@ -10,7 +10,7 @@ export const taskService = {
       });
 
       const params = {
-        fields: [
+fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
           { field: { Name: "Owner" } },
@@ -18,7 +18,8 @@ export const taskService = {
           { field: { Name: "description" } },
           { field: { Name: "projectId" } },
           { field: { Name: "completed" } },
-          { field: { Name: "createdAt" } }
+          { field: { Name: "createdAt" } },
+          { field: { Name: "dueDate" } }
         ],
         orderBy: [
           {
@@ -70,7 +71,7 @@ export const taskService = {
       });
 
       const params = {
-        fields: [
+fields: [
           { field: { Name: "Name" } },
           { field: { Name: "Tags" } },
           { field: { Name: "Owner" } },
@@ -78,7 +79,8 @@ export const taskService = {
           { field: { Name: "description" } },
           { field: { Name: "projectId" } },
           { field: { Name: "completed" } },
-          { field: { Name: "createdAt" } }
+          { field: { Name: "createdAt" } },
+          { field: { Name: "dueDate" } }
         ]
       };
 
@@ -107,14 +109,15 @@ export const taskService = {
         apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
       });
 
-      const params = {
+const params = {
         records: [
           {
             title: taskData.title || '',
             description: taskData.description || '',
             projectId: parseInt(taskData.projectId),
             completed: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null
           }
         ]
       };
@@ -171,10 +174,11 @@ export const taskService = {
         Id: parseInt(id)
       };
 
-      if (taskData.title !== undefined) updateData.title = taskData.title;
+if (taskData.title !== undefined) updateData.title = taskData.title;
       if (taskData.description !== undefined) updateData.description = taskData.description;
       if (taskData.projectId !== undefined) updateData.projectId = parseInt(taskData.projectId);
       if (taskData.completed !== undefined) updateData.completed = taskData.completed;
+      if (taskData.dueDate !== undefined) updateData.dueDate = taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null;
 
       const params = {
         records: [updateData]

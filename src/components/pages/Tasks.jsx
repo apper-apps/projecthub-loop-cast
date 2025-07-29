@@ -19,11 +19,12 @@ const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    projectId: ''
+    projectId: '',
+    dueDate: ''
   });
 const [formErrors, setFormErrors] = useState({});
   const [selectedProjectFilter, setSelectedProjectFilter] = useState('');
@@ -82,7 +83,7 @@ const handleFormSubmit = async (e) => {
 try {
       const newTask = await taskService.create(formData);
       setTasks(prev => [...prev, newTask]);
-      setFormData({ title: '', description: '', projectId: '' });
+      setFormData({ title: '', description: '', projectId: '', dueDate: '' });
       setFormErrors({});
       setShowForm(false);
     } catch (err) {
@@ -242,13 +243,26 @@ if (loading) return <Loading />;
               />
             </div>
 
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                className="w-full"
+              />
+            </div>
+
             <div className="flex gap-3 justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
                   setShowForm(false);
-                  setFormData({ title: '', description: '', projectId: '' });
+                  setFormData({ title: '', description: '', projectId: '', dueDate: '' });
                   setFormErrors({});
                 }}
               >
@@ -316,8 +330,40 @@ if (loading) return <Loading />;
 };
 
 const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
+  // Determine due date status
+  const getDueDateStatus = (dueDate) => {
+    if (!dueDate) return null;
+    
+    const today = new Date();
+    const due = new Date(dueDate);
+    
+    // Reset time to compare only dates
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    
+    if (due < today) return 'overdue';
+    if (due.getTime() === today.getTime()) return 'due-today';
+    return 'upcoming';
+  };
+
+  const dueDateStatus = getDueDateStatus(task.dueDate);
+  
+  // Determine card border color based on due date status
+  const getBorderClass = () => {
+    if (task.completed) return 'bg-gray-50 border-gray-200';
+    
+    switch (dueDateStatus) {
+      case 'overdue':
+        return 'bg-white border-red-200 hover:border-red-300';
+      case 'due-today':
+        return 'bg-white border-orange-200 hover:border-orange-300';
+      default:
+        return 'bg-white border-gray-200 hover:border-gray-300';
+    }
+  };
+
   return (
-    <Card className={`p-4 transition-all duration-200 ${task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+    <Card className={`p-4 transition-all duration-200 ${getBorderClass()}`}>
       <div className="flex items-start gap-3">
         <button
           onClick={() => onToggleComplete(task.Id)}
@@ -346,9 +392,32 @@ const TaskCard = ({ task, projectName, onToggleComplete, onDelete }) => {
               {task.description}
             </p>
           )}
-          <p className="text-xs text-gray-400 mt-2">
-            Created {format(new Date(task.createdAt), 'MMM d, yyyy')}
-          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-xs text-gray-400">
+              Created {format(new Date(task.createdAt), 'MMM d, yyyy')}
+            </p>
+            {task.dueDate && (
+              <div className="flex items-center gap-1">
+                <ApperIcon name="Calendar" size={12} />
+                <p className={`text-xs ${
+                  task.completed 
+                    ? 'text-gray-400' 
+                    : dueDateStatus === 'overdue' 
+                      ? 'text-red-600 font-medium' 
+                      : dueDateStatus === 'due-today'
+                        ? 'text-orange-600 font-medium'
+                        : 'text-gray-500'
+                }`}>
+                  {dueDateStatus === 'overdue' 
+                    ? `Overdue: ${format(new Date(task.dueDate), 'MMM d, yyyy')}`
+                    : dueDateStatus === 'due-today'
+                      ? 'Due today'
+                      : `Due: ${format(new Date(task.dueDate), 'MMM d, yyyy')}`
+                  }
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
