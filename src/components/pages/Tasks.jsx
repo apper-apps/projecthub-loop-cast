@@ -65,12 +65,17 @@ const loadTasks = async () => {
       setError('Failed to load tasks');
       console.error('Error loading tasks:', err);
     } finally {
-      setLoading(false);
+setLoading(false);
     }
   };
+
+  const getProjectName = (projectId) => {
+    const project = projects.find(p => p.Id === projectId);
+    return project ? project.title : 'Unknown Project';
+  };
+
 const handleFormSubmit = async (e) => {
     e.preventDefault();
-    
     // Validate form
     const errors = {};
     if (!formData.title.trim()) {
@@ -240,10 +245,6 @@ const handleProjectFilterChange = (projectId) => {
   const completedTasks = filteredTasks.filter(task => task.completed);
   const pendingTasks = filteredTasks.filter(task => !task.completed);
 
-  const getProjectName = (projectId) => {
-    const project = projects.find(p => p.Id === projectId);
-    return project ? project.title : 'Unknown Project';
-  };
 if (loading) return <Loading />;
   if (error) return <Error message={error} onRetry={loadTasks} />;
   return (
