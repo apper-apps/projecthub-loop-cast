@@ -74,8 +74,8 @@ const navigate = useNavigate();
     }
   };
 
-  const handleViewTasks = (projectId) => {
-    navigate(`/tasks?projectId=${projectId}`);
+const handleViewTasks = (projectId) => {
+    navigate(`/projects/${projectId}`);
   };
 
   if (loading) return <Loading type="projects" />;

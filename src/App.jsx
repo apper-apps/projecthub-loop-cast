@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 import Layout from "@/components/organisms/Layout";
 import Dashboard from "@/components/pages/Dashboard";
 import Projects from "@/components/pages/Projects";
+import ProjectDetail from "@/components/pages/ProjectDetail";
 import Tasks from "@/components/pages/Tasks";
 
 function App() {
@@ -12,9 +13,10 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
+<Route index element={<Dashboard />} />
             <Route path="projects" element={<Projects />} />
-<Route path="tasks" element={<Tasks />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="tasks" element={<Tasks />} />
           </Route>
         </Routes>
         
