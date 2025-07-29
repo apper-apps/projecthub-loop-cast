@@ -1,0 +1,23 @@
+[
+  {
+    "Id": 1,
+    "title": "Set up project repository",
+    "description": "Initialize the Git repository and set up the basic project structure",
+    "completed": true,
+    "createdAt": "2024-01-15T10:00:00Z"
+  },
+  {
+    "Id": 2,
+    "title": "Design user interface mockups",
+    "description": "Create wireframes and mockups for the main application screens",
+    "completed": false,
+    "createdAt": "2024-01-16T14:30:00Z"
+  },
+  {
+    "Id": 3,
+    "title": "Implement authentication system",
+    "description": "Set up user login, registration, and session management",
+    "completed": false,
+    "createdAt": "2024-01-17T09:15:00Z"
+  }
+]
